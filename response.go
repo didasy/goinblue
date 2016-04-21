@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+const (
+	TIME_FORMAT = "2013-06-20 20:09:22"
+)
+
 // The response from server
 type Response struct {
 	Code    string      `json:"code"`
@@ -55,7 +59,8 @@ type WebhookResponse struct {
 	Event         string    `json:"event"`
 	Email         string    `json:"email"`
 	Id            int       `json:"id"`
-	Date          time.Time `json:"date"`
+	DateString    string    `json:"date"`
+	Date          time.Time `json:"date_time"`
 	MessageId     string    `json:"message-id"`
 	Tag           string    `json:"tag"`
 	XMailinCustom string    `json:"X-Mailin-custom"`
@@ -64,9 +69,18 @@ type WebhookResponse struct {
 }
 
 func UnmarshalWebhookResponse(data []byte) (*WebhookResponse, error) {
-	res := &WebhookResponse{}
+	resMap := map[string]interface{}{}
+	err := json.Unmarshal(data, resMap)
+	if err != nil {
+		return nil, err
+	}
 
-	err := json.Unmarshal(data, res)
+	res := &WebhookResponse{}
+	err = json.Unmarshal(data, res)
+	if err != nil {
+		return nil, err
+	}
+	res.Date, err = time.Parse(TIME_FORMAT, res.DateString)
 	if err != nil {
 		return nil, err
 	}

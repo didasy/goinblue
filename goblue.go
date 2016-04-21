@@ -17,6 +17,7 @@ const (
 	CONTENT_TYPE        = "application/json"
 	EMAIL_URL           = "/email"
 	EMAIL_TEMPLATE_URL  = "/template"
+	SMS_URL             = "/sms"
 	POST                = "POST"
 	CONTENT_TYPE_HEADER = "Content-Type"
 	API_KEY_HEADER      = "api-key"
@@ -37,6 +38,7 @@ type Goblue struct {
 	ApiKeyHeader      string
 	EmailUrl          string
 	EmailTemplateUrl  string
+	SMSUrl            string
 }
 
 // Create new Goblue client with default values
@@ -51,6 +53,7 @@ func NewClient(apiKey string) *Goblue {
 		ApiKeyHeader:      API_KEY_HEADER,
 		EmailUrl:          EMAIL_URL,
 		EmailTemplateUrl:  EMAIL_TEMPLATE_URL,
+		SMSUrl:            SMS_URL,
 	}
 }
 
@@ -67,7 +70,7 @@ func (g *Goblue) SendEmail(email *Email) (*Response, error) {
 
 	urlStr := g.BaseUrl + g.EmailUrl
 
-	res, err := g.sendEmail(g.Method, urlStr, email.Headers, ioutil.NopCloser(body))
+	res, err := g.sendMessage(g.Method, urlStr, email.Headers, ioutil.NopCloser(body))
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +102,7 @@ func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, err
 
 	urlStr := g.BaseUrl + g.EmailTemplateUrl + "/" + strconv.Itoa(emailTemplate.Id)
 
-	res, err := g.sendEmail(g.Method, urlStr, emailTemplate.Headers, ioutil.NopCloser(body))
+	res, err := g.sendMessage(g.Method, urlStr, emailTemplate.Headers, ioutil.NopCloser(body))
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +121,7 @@ func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, err
 	return resp, nil
 }
 
-func (g *Goblue) sendEmail(method string, url string, headers map[string]string, body io.ReadCloser) (*http.Response, error) {
+func (g *Goblue) sendMessage(method string, url string, headers map[string]string, body io.ReadCloser) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
@@ -135,4 +138,35 @@ func (g *Goblue) sendEmail(method string, url string, headers map[string]string,
 	}
 
 	return client.Do(req)
+}
+
+func (g *Goblue) SendSMS(sms *SMS) (*Response, error) {
+	body := &bytes.Buffer{}
+	defer body.Reset()
+
+	encoder := json.NewEncoder(body)
+	err := encoder.Encode(sms)
+	if err != nil {
+		return nil, err
+	}
+
+	urlStr := g.BaseUrl + g.SMSUrl
+
+	res, err := g.sendMessage(g.Method, urlStr, nil, ioutil.NopCloser(body))
+	if err != nil {
+		return nil, err
+	}
+
+	rawResBody, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &Response{}
+	err = json.Unmarshal(rawResBody, resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

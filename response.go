@@ -11,6 +11,17 @@ type Response struct {
 	Data    interface{} `json:"data"`
 }
 
+type SMSResponseData struct {
+	Status          string            `json:"status"`
+	Message         string            `json:"message"`
+	NumberSent      int               `json:"number_sent"`
+	To              string            `json:"to"`
+	SMSCount        int               `json:"sms_count"`
+	CreditsUsed     float64           `json:"credits_used"`
+	RemainingCredit float64           `json:"remaining_credit"`
+	Reference       map[string]string `json:"reference"`
+}
+
 // To get message-id of a sent message
 func (r *Response) GetMessageId() (string, error) {
 	dataInterface, ok := r.Data.(map[string]interface{})
@@ -23,4 +34,13 @@ func (r *Response) GetMessageId() (string, error) {
 	}
 
 	return emailID, nil
+}
+
+func (r *Response) GetSMSResponseData() (*SMSResponseData, error) {
+	smsResponse, ok := r.Data.(*SMSResponseData)
+	if !ok {
+		return nil, fmt.Errorf("Invalid Data type: ", "Not a valid SMSResponseData")
+	}
+
+	return smsResponse, nil
 }

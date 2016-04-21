@@ -5,9 +5,11 @@ package goblue
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 const (
@@ -37,60 +39,6 @@ type Goblue struct {
 	EmailTemplateUrl  string
 }
 
-// The response from server
-type Response struct {
-	Code    string      `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
-}
-
-// To get message-id of a sent message
-func (r *Response) GetMessageId() (string, error) {
-	dataInterface, ok := r.Data.(map[string]interface{})
-	if !ok {
-		return "", fmt.Errorf("Invalid Data type: ", "Cannot convert to map[string]interface{}")
-	}
-	emailID, ok := dataInterface["message-id"].(string)
-	if !ok {
-		return "", fmt.Errorf("Invalid Data type: ", "message-id is not a string")
-	}
-
-	return emailID, nil
-}
-
-// Email request to be send
-type Email struct {
-	To          map[string]string `json:"to"`
-	Subject     string            `json:"subject"`
-	From        []string          `json:"from"`
-	Html        string            `json:"html"`
-	Text        string            `json:"text"`
-	Cc          map[string]string `json:"cc"`
-	Bcc         map[string]string `json:"bcc"`
-	ReplyTo     []string          `json:"replyto"`
-	Attachment  interface{}       `json:"attachment"`
-	Headers     map[string]string `json:"headers"`
-	InlineImage map[string]string `json:"inline_image"`
-}
-
-// Email template request to be send
-type EmailTemplate struct {
-	Id            int               `json:"id"`
-	To            map[string]string `json:"to"`
-	Cc            map[string]string `json:"cc"`
-	Bcc           map[string]string `json:"bcc"`
-	Attr          map[string]string `json:"attr"`
-	AttachmentUrl []string          `json:"attachment_url"`
-	Attachment    map[string]string `json:"attachment"`
-	Headers       map[string]string `json:"headers"`
-}
-
-// This is here for documentation purpose
-type Attachment map[string]string
-
-// This is here for documentation purpose
-type AttachmentUrl []string
-
 // Create new Goblue client with default values
 func NewClient(apiKey string) *Goblue {
 	return &Goblue{
@@ -119,13 +67,18 @@ func (g *Goblue) SendEmail(email *Email) (*Response, error) {
 
 	urlStr := g.BaseUrl + g.EmailUrl
 
-	res, err := sendEmail(g.Method, urlStr, body)
+	res, err := g.sendEmail(g.Method, urlStr, email.Headers, ioutil.NopCloser(body))
+	if err != nil {
+		return nil, err
+	}
+
+	rawResBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := &Response{}
-	err = json.Unmarshal(res.Body, resp)
+	err = json.Unmarshal(rawResBody, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +88,7 @@ func (g *Goblue) SendEmail(email *Email) (*Response, error) {
 
 // Send email using template
 func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, error) {
-	body := &bytes.Buffer
+	body := &bytes.Buffer{}
 	defer body.Reset()
 
 	encoder := json.NewEncoder(body)
@@ -146,13 +99,18 @@ func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, err
 
 	urlStr := g.BaseUrl + g.EmailTemplateUrl + "/" + strconv.Itoa(emailTemplate.Id)
 
-	res, err := sendEmail(g.Method, urlStr, body)
+	res, err := g.sendEmail(g.Method, urlStr, emailTemplate.Headers, ioutil.NopCloser(body))
+	if err != nil {
+		return nil, err
+	}
+
+	rawResBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := &Response{}
-	err = json.Unmarshal(res.Body, resp)
+	err = json.Unmarshal(rawResBody, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -160,17 +118,17 @@ func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, err
 	return resp, nil
 }
 
-func sendEmail(method string, url string, body io.ReadCloser) (*http.Response, error) {
+func (g *Goblue) sendEmail(method string, url string, headers map[string]string, body io.ReadCloser) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
 
-	for key, val := range email.Headers {
+	for key, val := range headers {
 		req.Header.Add(key, val)
 	}
-	req.Header.Add(CONTENT_TYPE_HEADER, CONTENT_TYPE)
-	req.Header.Add(API_KEY_HEADER, g.ApiKey)
+	req.Header.Add(g.ContentTypeHeader, g.ContentType)
+	req.Header.Add(g.ApiKeyHeader, g.ApiKey)
 
 	client := &http.Client{
 		Timeout: g.Timeout,

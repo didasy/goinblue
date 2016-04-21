@@ -35,3 +35,6 @@ func main() {
 	fmt.Println(res)
 }
 ```
+
+###### Notes
+I should've named this package goinblue instead for more swag, but it is too late now. You can take it, it is all yours my friend.

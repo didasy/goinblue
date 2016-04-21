@@ -20,6 +20,10 @@ type SMSResponseData struct {
 	CreditsUsed     float64           `json:"credits_used"`
 	RemainingCredit float64           `json:"remaining_credit"`
 	Reference       map[string]string `json:"reference"`
+	Description     string            `json:"description"`
+	Reply           string            `json:"reply"`
+	BounceType      string            `json:"bounce_type"`
+	ErrorCode       int               `json:"error_code"`
 }
 
 // To get message-id of a sent message

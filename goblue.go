@@ -121,25 +121,6 @@ func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, err
 	return resp, nil
 }
 
-func (g *Goblue) sendMessage(method string, url string, headers map[string]string, body io.ReadCloser) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	for key, val := range headers {
-		req.Header.Add(key, val)
-	}
-	req.Header.Add(g.ContentTypeHeader, g.ContentType)
-	req.Header.Add(g.ApiKeyHeader, g.ApiKey)
-
-	client := &http.Client{
-		Timeout: g.Timeout,
-	}
-
-	return client.Do(req)
-}
-
 func (g *Goblue) SendSMS(sms *SMS) (*Response, error) {
 	body := &bytes.Buffer{}
 	defer body.Reset()
@@ -169,4 +150,23 @@ func (g *Goblue) SendSMS(sms *SMS) (*Response, error) {
 	}
 
 	return resp, nil
+}
+
+func (g *Goblue) sendMessage(method string, url string, headers map[string]string, body io.ReadCloser) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, val := range headers {
+		req.Header.Add(key, val)
+	}
+	req.Header.Add(g.ContentTypeHeader, g.ContentType)
+	req.Header.Add(g.ApiKeyHeader, g.ApiKey)
+
+	client := &http.Client{
+		Timeout: g.Timeout,
+	}
+
+	return client.Do(req)
 }

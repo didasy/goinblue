@@ -1,7 +1,9 @@
 package goblue
 
 import (
+	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // The response from server
@@ -47,4 +49,27 @@ func (r *Response) GetSMSResponseData() (*SMSResponseData, error) {
 	}
 
 	return smsResponse, nil
+}
+
+type WebhookResponse struct {
+	Event         string    `json:"event"`
+	Email         string    `json:"email"`
+	Id            int       `json:"id"`
+	Date          time.Time `json:"date"`
+	MessageId     string    `json:"message-id"`
+	Tag           string    `json:"tag"`
+	XMailinCustom string    `json:"X-Mailin-custom"`
+	Reason        string    `json:"reason"`
+	Link          string    `json:"link"`
+}
+
+func UnmarshalWebhookResponse(data []byte) (*WebhookResponse, error) {
+	res := &WebhookResponse{}
+
+	err := json.Unmarshal(data, res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }

@@ -106,6 +106,11 @@ func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, err
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf("Failed to send email: ", res.Status, " - ", res.StatusCode)
+	}
 
 	rawResBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -136,6 +141,11 @@ func (g *Goblue) SendSMS(sms *SMS) (*Response, error) {
 	res, err := g.sendMessage(g.Method, urlStr, nil, ioutil.NopCloser(body))
 	if err != nil {
 		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf("Failed to send sms", res.Status, " - ", res.StatusCode)
 	}
 
 	rawResBody, err := ioutil.ReadAll(res.Body)

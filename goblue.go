@@ -5,12 +5,12 @@ package goblue
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
-	"fmt"
 )
 
 const (
@@ -45,16 +45,17 @@ type Goblue struct {
 // Create new Goblue client with default values
 func NewClient(apiKey string) *Goblue {
 	return &Goblue{
-		ApiKey:            apiKey,
-		Timeout:           DEFAULT_SEND_TIMEOUT,
-		BaseUrl:           BASE_URL,
-		ContentType:       CONTENT_TYPE,
-		Method:            POST,
-		ContentTypeHeader: CONTENT_TYPE_HEADER,
-		ApiKeyHeader:      API_KEY_HEADER,
-		EmailUrl:          EMAIL_URL,
-		EmailTemplateUrl:  EMAIL_TEMPLATE_URL,
-		SMSUrl:            SMS_URL,
+		ApiKey:              apiKey,
+		Timeout:             DEFAULT_SEND_TIMEOUT,
+		BaseUrl:             BASE_URL,
+		ContentType:         CONTENT_TYPE,
+		Method:              POST,
+		ContentTypeHeader:   CONTENT_TYPE_HEADER,
+		ContentLengthHeader: CONTENT_LENGTH_HEADER,
+		ApiKeyHeader:        API_KEY_HEADER,
+		EmailUrl:            EMAIL_URL,
+		EmailTemplateUrl:    EMAIL_TEMPLATE_URL,
+		SMSUrl:              SMS_URL,
 	}
 }
 
@@ -71,7 +72,7 @@ func (g *Goblue) SendEmail(email *Email) (*Response, error) {
 
 	urlStr := g.BaseUrl + g.EmailUrl
 
-	res, err := g.sendMessage(g.Method, urlStr, email.Headers, ioutil.NopCloser(body))
+	res, err := g.sendMessage(g.Method, urlStr, email.Headers, ioutil.NopCloser(body), body.Len())
 	if err != nil {
 		return nil, err
 	}
@@ -79,6 +80,10 @@ func (g *Goblue) SendEmail(email *Email) (*Response, error) {
 	rawResBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf("Failed to send email: %s", res.Status)
 	}
 
 	resp := &Response{}
@@ -103,7 +108,7 @@ func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, err
 
 	urlStr := g.BaseUrl + g.EmailTemplateUrl + "/" + strconv.Itoa(emailTemplate.Id)
 
-	res, err := g.sendMessage(g.Method, urlStr, emailTemplate.Headers, ioutil.NopCloser(body))
+	res, err := g.sendMessage(g.Method, urlStr, emailTemplate.Headers, ioutil.NopCloser(body), body.Len())
 	if err != nil {
 		return nil, err
 	}
@@ -113,13 +118,13 @@ func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, err
 		res.Body.Close()
 	}()
 
-	if res.StatusCode >= 400 {
-		return nil, fmt.Errorf("Failed to send email: ", res.Status, " - ", res.StatusCode)
-	}
-
 	rawResBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf("Failed to send email: %s", res.Status)
 	}
 
 	resp := &Response{}
@@ -143,19 +148,19 @@ func (g *Goblue) SendSMS(sms *SMS) (*Response, error) {
 
 	urlStr := g.BaseUrl + g.SMSUrl
 
-	res, err := g.sendMessage(g.Method, urlStr, nil, ioutil.NopCloser(body))
+	res, err := g.sendMessage(g.Method, urlStr, nil, ioutil.NopCloser(body), body.Len())
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode >= 400 {
-		return nil, fmt.Errorf("Failed to send sms", res.Status, " - ", res.StatusCode)
-	}
-
 	rawResBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf("Failed to send sms: %s", res.Status)
 	}
 
 	resp := &Response{}
@@ -167,11 +172,13 @@ func (g *Goblue) SendSMS(sms *SMS) (*Response, error) {
 	return resp, nil
 }
 
-func (g *Goblue) sendMessage(method string, url string, headers map[string]string, body io.ReadCloser) (*http.Response, error) {
+func (g *Goblue) sendMessage(method string, url string, headers map[string]string, body io.ReadCloser, length int) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
+
+	req.ContentLength = int64(length)
 
 	for key, val := range headers {
 		req.Header.Add(key, val)

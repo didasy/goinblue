@@ -106,7 +106,11 @@ func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, err
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
+	defer func() {
+		// Drain and close the body to let the Transport reuse the connection
+		io.Copy(ioutil.Discard, res.Body)
+		res.Body.Close()
+	}()
 
 	if res.StatusCode >= 400 {
 		return nil, fmt.Errorf("Failed to send email: ", res.Status, " - ", res.StatusCode)

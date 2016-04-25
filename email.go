@@ -1,4 +1,4 @@
-package goblue
+package goinblue
 
 // Email request to be send
 type Email struct {

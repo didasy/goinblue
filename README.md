@@ -18,13 +18,13 @@ func main() {
 
 	email := &goblue.Email{
 		To: map[string]string{
-			"to@example.com": "Mr. To"
+			"to@example.com": "Mr. To",
 		},
 		Subject: "Test",
 		From: []string{
-			"from@example.com", "From"
+			"from@example.com", "From",
 		},
-		Text: "This is just a test."
+		Text: "This is just a test.",
 	}
 
 	client := goblue.NewClient(myApiKey)
@@ -35,6 +35,3 @@ func main() {
 	fmt.Println(res)
 }
 ```
-
-###### Notes
-I should've named this package goinblue instead for more swag, but it is too late now. You can take it, it is all yours my friend.

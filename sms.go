@@ -1,4 +1,4 @@
-package goblue
+package goinblue
 
 type SMS struct {
 	To     string `json:"to"`

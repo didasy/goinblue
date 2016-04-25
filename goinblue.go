@@ -1,6 +1,6 @@
-// Golang library for sendinblue API
+// Golang library for sendinblue API (work in progress)
 
-package goblue
+package goinblue
 
 import (
 	"bytes"
@@ -25,11 +25,11 @@ const (
 )
 
 var (
-	DEFAULT_SEND_TIMEOUT time.Duration = time.Second * 10
+	DEFAULT_SEND_TIMEOUT time.Duration = time.Second * 30
 )
 
 // The main struct of this package
-type Goblue struct {
+type Goinblue struct {
 	ApiKey            string
 	Timeout           time.Duration
 	BaseUrl           string
@@ -42,25 +42,24 @@ type Goblue struct {
 	SMSUrl            string
 }
 
-// Create new Goblue client with default values
-func NewClient(apiKey string) *Goblue {
-	return &Goblue{
-		ApiKey:              apiKey,
-		Timeout:             DEFAULT_SEND_TIMEOUT,
-		BaseUrl:             BASE_URL,
-		ContentType:         CONTENT_TYPE,
-		Method:              POST,
-		ContentTypeHeader:   CONTENT_TYPE_HEADER,
-		ContentLengthHeader: CONTENT_LENGTH_HEADER,
-		ApiKeyHeader:        API_KEY_HEADER,
-		EmailUrl:            EMAIL_URL,
-		EmailTemplateUrl:    EMAIL_TEMPLATE_URL,
-		SMSUrl:              SMS_URL,
+// Create new Goinblue client with default values
+func NewClient(apiKey string) *Goinblue {
+	return &Goinblue{
+		ApiKey:            apiKey,
+		Timeout:           DEFAULT_SEND_TIMEOUT,
+		BaseUrl:           BASE_URL,
+		ContentType:       CONTENT_TYPE,
+		Method:            POST,
+		ContentTypeHeader: CONTENT_TYPE_HEADER,
+		ApiKeyHeader:      API_KEY_HEADER,
+		EmailUrl:          EMAIL_URL,
+		EmailTemplateUrl:  EMAIL_TEMPLATE_URL,
+		SMSUrl:            SMS_URL,
 	}
 }
 
 // Send email
-func (g *Goblue) SendEmail(email *Email) (*Response, error) {
+func (g *Goinblue) SendEmail(email *Email) (*Response, error) {
 	body := &bytes.Buffer{}
 	defer body.Reset()
 
@@ -76,6 +75,11 @@ func (g *Goblue) SendEmail(email *Email) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		// Drain and close the body to let the Transport reuse the connection
+		io.Copy(ioutil.Discard, res.Body)
+		res.Body.Close()
+	}()
 
 	rawResBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -96,7 +100,7 @@ func (g *Goblue) SendEmail(email *Email) (*Response, error) {
 }
 
 // Send email using template
-func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, error) {
+func (g *Goinblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, error) {
 	body := &bytes.Buffer{}
 	defer body.Reset()
 
@@ -136,7 +140,7 @@ func (g *Goblue) SendEmailTemplate(emailTemplate *EmailTemplate) (*Response, err
 	return resp, nil
 }
 
-func (g *Goblue) SendSMS(sms *SMS) (*Response, error) {
+func (g *Goinblue) SendSMS(sms *SMS) (*Response, error) {
 	body := &bytes.Buffer{}
 	defer body.Reset()
 
@@ -152,7 +156,11 @@ func (g *Goblue) SendSMS(sms *SMS) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
+	defer func() {
+		// Drain and close the body to let the Transport reuse the connection
+		io.Copy(ioutil.Discard, res.Body)
+		res.Body.Close()
+	}()
 
 	rawResBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -172,7 +180,7 @@ func (g *Goblue) SendSMS(sms *SMS) (*Response, error) {
 	return resp, nil
 }
 
-func (g *Goblue) sendMessage(method string, url string, headers map[string]string, body io.ReadCloser, length int) (*http.Response, error) {
+func (g *Goinblue) sendMessage(method string, url string, headers map[string]string, body io.ReadCloser, length int) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err

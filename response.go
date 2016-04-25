@@ -1,4 +1,4 @@
-package goblue
+package goinblue
 
 import (
 	"encoding/json"

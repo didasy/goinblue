@@ -1,4 +1,4 @@
-# Goblue
+# Goinblue
 ---------------------------------
 ### A work in progress package for golang to send email and SMS through sendinblue.com
 

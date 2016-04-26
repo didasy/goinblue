@@ -9,14 +9,14 @@ Example:
 package main
 
 import (
-	"github.com/JesusIslam/goblue"
+	"github.com/JesusIslam/goinblue"
 	"fmt"
 )
 
 func main() {
 	myApiKey := "thisisyourapikey"
 
-	email := &goblue.Email{
+	email := &goinblue.Email{
 		To: map[string]string{
 			"to@example.com": "Mr. To",
 		},
@@ -27,7 +27,7 @@ func main() {
 		Text: "This is just a test.",
 	}
 
-	client := goblue.NewClient(myApiKey)
+	client := goinblue.NewClient(myApiKey)
 	res, err := client.SendEmail(email)
 	if err != nil {
 		panic(err)

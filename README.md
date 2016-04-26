@@ -1,3 +1,5 @@
+[![GoDoc](https://godoc.org/github.com/JesusIslam/goinblue?status.svg)](https://godoc.org/github.com/JesusIslam/goinblue)
+
 # Goinblue
 ---------------------------------
 ### A work in progress package for golang to send email and SMS through sendinblue.com

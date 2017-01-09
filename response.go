@@ -3,6 +3,7 @@ package goinblue
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"time"
 )
 
@@ -58,32 +59,55 @@ func (r *Response) GetSMSResponseData() (*SMSResponseData, error) {
 type WebhookResponse struct {
 	Event         string    `json:"event"`
 	Email         string    `json:"email"`
-	Id            int       `json:"id"`
-	DateString    string    `json:"date"`
+	Id            int64     `json:"id"`
 	Date          time.Time `json:"date_time"`
+	Ts            int64     `json:"ts"` // timestamp (same as Date but GMT)
+	Subject       string    `json:"subject"`
+	SendingIP     net.IP    `json:"sending-ip"`
 	MessageId     string    `json:"message-id"`
 	Tag           string    `json:"tag"`
 	XMailinCustom string    `json:"X-Mailin-custom"`
-	Reason        string    `json:"reason"`
-	Link          string    `json:"link"`
+	Reason        string    `json:"reason,omitempty"` // for "bounce" and "deferred" events only
+	Link          string    `json:"link,omitempty"`   // for "click" events only
 }
 
-func UnmarshalWebhookResponse(data []byte) (*WebhookResponse, error) {
-	resMap := map[string]interface{}{}
-	err := json.Unmarshal(data, resMap)
-	if err != nil {
-		return nil, err
+func (e *WebhookResponse) UnmarshalJSON(b []byte) error {
+	type t struct {
+		Event         string
+		Email         string
+		Id            int64
+		Date          string
+		Ts            int64
+		Subject       string
+		SendingIP     string `json:"sending_ip"`
+		MessageId     string `json:"message-id"`
+		Tag           string
+		XMailinCustom string `json:"X-Mailin-custom"`
+		Reason        string
+		Link          string
 	}
-
-	res := &WebhookResponse{}
-	err = json.Unmarshal(data, res)
+	var v t
+	err := json.Unmarshal(b, &v)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	res.Date, err = time.Parse(TIME_FORMAT, res.DateString)
+	date, err := time.Parse("2006-01-02 15:04:05", v.Date)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	return res, nil
+	*e = WebhookResponse{
+		Event:         v.Event,
+		Email:         v.Email,
+		Id:            v.Id,
+		Date:          date,
+		Ts:            v.Ts,
+		Subject:       v.Subject,
+		SendingIP:     net.ParseIP(v.SendingIP),
+		MessageId:     v.MessageId,
+		Tag:           v.Tag,
+		XMailinCustom: v.XMailinCustom,
+		Reason:        v.Reason,
+		Link:          v.Link,
+	}
+	return nil
 }
